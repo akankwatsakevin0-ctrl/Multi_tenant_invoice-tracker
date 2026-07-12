@@ -4,12 +4,10 @@
 
 import { Response, NextFunction } from 'express';
 import { query } from '../config/database';
-import { AppError } from '../middleware/errorHandler';
 import {
   AuthenticatedRequest,
   ApiResponse,
   Client,
-  CreateClientBody,
 } from '../types';
 
 // ---------------------------------------------------------------------------
@@ -54,17 +52,13 @@ export async function createClient(
 ): Promise<void> {
   try {
     const tenantId = req.user!.tenant_id;
-    const { name, email, address } = req.body as CreateClientBody;
-
-    if (!name || name.trim().length === 0) {
-      throw new AppError('Client name is required.', 400);
-    }
+    const { name, email, address } = req.body as { name: string; email?: string | null; address?: string | null };
 
     const result = await query<Client>(
       `INSERT INTO clients (tenant_id, name, email, address)
        VALUES ($1, $2, $3, $4)
        RETURNING id, tenant_id, name, email, address, created_at`,
-      [tenantId, name.trim(), email || null, address || null]
+      [tenantId, name, email || null, address || null]
     );
 
     res.status(201).json({

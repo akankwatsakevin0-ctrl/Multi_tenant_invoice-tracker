@@ -10,8 +10,6 @@ import { AppError } from '../middleware/errorHandler';
 import {
   AuthenticatedRequest,
   ApiResponse,
-  RegisterBody,
-  LoginBody,
   User,
   Tenant,
 } from '../types';
@@ -29,18 +27,7 @@ export async function register(
   next: NextFunction
 ): Promise<void> {
   try {
-    const { email, password, tenant_name, tenant_currency = 'USD' } = req.body as RegisterBody;
-
-    // --- Validation ---
-    if (!email || !password || !tenant_name) {
-      throw new AppError('email, password, and tenant_name are required.', 400);
-    }
-    if (password.length < 8) {
-      throw new AppError('Password must be at least 8 characters.', 400);
-    }
-    if (!['USD', 'EUR'].includes(tenant_currency)) {
-      throw new AppError('Currency must be USD or EUR.', 400);
-    }
+    const { email, password, tenant_name, tenant_currency } = req.body as { email: string; password: string; tenant_name: string; tenant_currency: string };
 
     // Check for existing user
     const existing = await query<User>(
@@ -116,11 +103,7 @@ export async function login(
   next: NextFunction
 ): Promise<void> {
   try {
-    const { email, password } = req.body as LoginBody;
-
-    if (!email || !password) {
-      throw new AppError('email and password are required.', 400);
-    }
+    const { email, password } = req.body as { email: string; password: string };
 
     // Find user
     const userRes = await query<User>(

@@ -4,24 +4,18 @@
 
 import { Response, NextFunction } from 'express';
 import { query, transaction } from '../config/database';
-import { AppError, validateEnum } from '../middleware/errorHandler';
+import { AppError } from '../middleware/errorHandler';
 import {
   AuthenticatedRequest,
   ApiResponse,
   PaginatedResponse,
   Invoice,
   InvoiceItem,
-  CreateInvoiceBody,
-  UpdateInvoiceBody,
-  InvoiceQueryParams,
 } from '../types';
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
-
-const VALID_STATUSES = ['draft', 'sent', 'paid', 'overdue', 'cancelled'] as const;
-const VALID_CURRENCIES = ['USD', 'EUR'] as const;
 
 function generateInvoiceNumber(tenantId: string): string {
   const prefix = tenantId.substring(0, 4).toUpperCase();
@@ -42,10 +36,10 @@ export async function getInvoices(
 ): Promise<void> {
   try {
     const tenantId = req.user!.tenant_id;
-    const { status, currency, page = '1', limit = '20' } = req.query as unknown as InvoiceQueryParams;
+    const { status, currency, page, limit } = req.query as unknown as { status?: string; currency?: string; page: number; limit: number };
 
-    const pageNum = Math.max(1, parseInt(page || '1', 10));
-    const limitNum = Math.min(100, Math.max(1, parseInt(limit || '20', 10)));
+    const pageNum = page;
+    const limitNum = limit;
     const offset = (pageNum - 1) * limitNum;
 
     // Build WHERE clauses
@@ -59,14 +53,12 @@ export async function getInvoices(
     let paramIndex = 2;
 
     if (status) {
-      validateEnum(status, VALID_STATUSES, 'status');
       conditions.push(`i.status = $${paramIndex}`);
       params.push(status);
       paramIndex++;
     }
 
     if (currency) {
-      validateEnum(currency, VALID_CURRENCIES, 'currency');
       conditions.push(`i.currency = $${paramIndex}`);
       params.push(currency);
       paramIndex++;
@@ -162,16 +154,7 @@ export async function createInvoice(
 ): Promise<void> {
   try {
     const tenantId = req.user!.tenant_id;
-    const body = req.body as CreateInvoiceBody;
-
-    // --- Validation ---
-    if (!body.client_id) throw new AppError('client_id is required.', 400);
-    if (!body.due_date) throw new AppError('due_date is required.', 400);
-    if (!body.items || body.items.length === 0) {
-      throw new AppError('At least one line item is required.', 400);
-    }
-
-    validateEnum(body.currency || 'USD', VALID_CURRENCIES, 'currency');
+    const body = req.body as { client_id: string; invoice_number?: string; currency: string; status: string; due_date: string; items: { description: string; quantity: number; unit_price: number }[] };
 
     // Verify client belongs to this tenant
     const clientCheck = await query(
@@ -183,8 +166,6 @@ export async function createInvoice(
     }
 
     const invoiceNumber = body.invoice_number || generateInvoiceNumber(tenantId);
-    const status = body.status || 'draft';
-    validateEnum(status, VALID_STATUSES, 'status');
 
     // --- Create invoice + items in a transaction ---
     const result = await transaction(async (tx) => {
@@ -199,7 +180,7 @@ export async function createInvoice(
           invoiceNumber,
           0, // amount will be recalculated by trigger
           body.currency || 'USD',
-          status,
+          body.status,
           body.due_date,
         ]
       );
@@ -249,7 +230,7 @@ export async function updateInvoice(
   try {
     const { id } = req.params;
     const tenantId = req.user!.tenant_id;
-    const body = req.body as UpdateInvoiceBody;
+    const body = req.body as { client_id?: string; invoice_number?: string; currency?: string; status?: string; due_date?: string; items?: { description: string; quantity: number; unit_price: number }[] };
 
     // Verify invoice exists and belongs to tenant
     const existing = await query<Invoice>(
@@ -286,14 +267,12 @@ export async function updateInvoice(
     }
 
     if (body.currency !== undefined) {
-      validateEnum(body.currency, VALID_CURRENCIES, 'currency');
       updates.push(`currency = $${paramIndex}`);
       params.push(body.currency);
       paramIndex++;
     }
 
     if (body.status !== undefined) {
-      validateEnum(body.status, VALID_STATUSES, 'status');
       updates.push(`status = $${paramIndex}`);
       params.push(body.status);
       paramIndex++;
