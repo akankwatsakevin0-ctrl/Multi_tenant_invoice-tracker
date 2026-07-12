@@ -1,0 +1,12 @@
+process.env.DATABASE_URL = 'postgresql://test:test@localhost:5432/test_db';
+process.env.JWT_SECRET = 'test-jwt-secret';
+process.env.JWT_EXPIRES_IN = '1h';
+process.env.NODE_ENV = 'test';
+process.env.PORT = '3001';
+process.env.HOST = '0.0.0.0';
+process.env.DB_SSL = 'false';
+process.env.DB_POOL_MIN = '1';
+process.env.DB_POOL_MAX = '1';
+process.env.CORS_ORIGIN = 'http://localhost:5173';
+process.env.RATE_LIMIT_MAX = '100';
+process.env.TRUST_PROXY = 'false';

@@ -15,6 +15,9 @@
         "seed": "node db/seed.js",
         "db:setup": "npm run migrate && npm run seed",
         "lint": "tsc --noEmit",
+        "test": "vitest run",
+        "test:watch": "vitest",
+        "test:coverage": "vitest run --coverage",
         "clean": "rm -rf dist"
     },
     "dependencies": {
@@ -36,6 +39,7 @@
         "@types/pg": "^8.11.6",
         "nodemon": "^3.1.0",
         "ts-node": "^10.9.2",
-        "typescript": "^5.5.0"
+        "typescript": "^5.5.0",
+        "vitest": "^4.1.10"
     }
 }
