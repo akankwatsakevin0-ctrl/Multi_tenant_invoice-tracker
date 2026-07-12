@@ -5,7 +5,7 @@
 import { Response, NextFunction } from 'express';
 import bcrypt from 'bcryptjs';
 import { query, transaction } from '../config/database';
-import { generateToken } from '../middleware/auth';
+import { generateToken, generateRefreshToken, verifyRefreshToken, revokeRefreshToken } from '../middleware/auth';
 import { AppError } from '../middleware/errorHandler';
 import {
   AuthenticatedRequest,
@@ -23,7 +23,7 @@ const SALT_ROUNDS = 10;
 
 export async function register(
   req: AuthenticatedRequest,
-  res: Response<ApiResponse<{ token: string; user: Omit<User, 'password_hash'> }>>,
+  res: Response<ApiResponse>,
   next: NextFunction
 ): Promise<void> {
   try {
@@ -64,7 +64,7 @@ export async function register(
       return { tenant, user };
     });
 
-    // 4. Generate JWT
+    // 4. Generate tokens
     const token = generateToken({
       user_id: result.user.id,
       tenant_id: result.tenant.id,
@@ -72,10 +72,13 @@ export async function register(
       email: result.user.email,
     });
 
+    const refresh_token = await generateRefreshToken(result.user.id);
+
     res.status(201).json({
       success: true,
       data: {
         token,
+        refresh_token,
         user: {
           id: result.user.id,
           email: result.user.email,
@@ -99,7 +102,7 @@ export async function register(
 
 export async function login(
   req: AuthenticatedRequest,
-  res: Response<ApiResponse<{ token: string; user: Omit<User, 'password_hash'> }>>,
+  res: Response<ApiResponse>,
   next: NextFunction
 ): Promise<void> {
   try {
@@ -125,7 +128,7 @@ export async function login(
       throw new AppError('Invalid email or password.', 401);
     }
 
-    // Generate token
+    // Generate tokens
     const token = generateToken({
       user_id: user.id,
       tenant_id: user.tenant_id,
@@ -133,10 +136,13 @@ export async function login(
       email: user.email,
     });
 
+    const refresh_token = await generateRefreshToken(user.id);
+
     res.json({
       success: true,
       data: {
         token,
+        refresh_token,
         user: {
           id: user.id,
           email: user.email,
@@ -179,6 +185,79 @@ export async function getMe(
       success: true,
       data: userRes.rows[0],
     });
+  } catch (err) {
+    next(err);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// POST /api/auth/refresh
+// Validates a refresh token and issues a new access + refresh token pair.
+// ---------------------------------------------------------------------------
+
+export async function refresh(
+  req: AuthenticatedRequest,
+  res: Response<ApiResponse>,
+  next: NextFunction
+): Promise<void> {
+  try {
+    const { refresh_token } = req.body as { refresh_token: string };
+
+    const { user_id } = await verifyRefreshToken(refresh_token);
+
+    // Revoke the old refresh token (rotation)
+    await revokeRefreshToken(refresh_token);
+
+    const userRes = await query<User>(
+      `SELECT id, email, tenant_id, role FROM users WHERE id = $1 AND deleted_at IS NULL`,
+      [user_id]
+    );
+
+    if (userRes.rows.length === 0) {
+      throw new AppError('User not found.', 404);
+    }
+
+    const user = userRes.rows[0];
+
+    const token = generateToken({
+      user_id: user.id,
+      tenant_id: user.tenant_id,
+      role: user.role,
+      email: user.email,
+    });
+
+    const new_refresh_token = await generateRefreshToken(user.id);
+
+    res.json({
+      success: true,
+      data: { token, refresh_token: new_refresh_token },
+    });
+  } catch (err) {
+    if (err instanceof Error && err.message.includes('refresh token')) {
+      return next(new AppError(err.message, 401));
+    }
+    next(err);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// POST /api/auth/logout
+// Revokes the provided refresh token.
+// ---------------------------------------------------------------------------
+
+export async function logout(
+  req: AuthenticatedRequest,
+  res: Response<ApiResponse>,
+  next: NextFunction
+): Promise<void> {
+  try {
+    const { refresh_token } = req.body as { refresh_token: string };
+
+    if (refresh_token) {
+      await revokeRefreshToken(refresh_token);
+    }
+
+    res.json({ success: true, message: 'Logged out successfully.' });
   } catch (err) {
     next(err);
   }

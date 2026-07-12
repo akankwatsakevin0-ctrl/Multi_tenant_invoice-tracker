@@ -4,7 +4,9 @@
 
 import { Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
-import { AuthenticatedRequest, AuthPayload, ApiResponse } from '../types';
+import crypto from 'crypto';
+import { query } from '../config/database';
+import { AuthenticatedRequest, AuthPayload, ApiResponse, RefreshToken } from '../types';
 import { ENV } from '../config/env';
 
 // ---------------------------------------------------------------------------
@@ -13,6 +15,20 @@ import { ENV } from '../config/env';
 
 const JWT_SECRET = ENV.JWT_SECRET;
 const JWT_EXPIRES_IN = ENV.JWT_EXPIRES_IN;
+const REFRESH_TOKEN_EXPIRES_IN_MS = parseDuration(ENV.REFRESH_TOKEN_EXPIRES_IN);
+
+function parseDuration(duration: string): number {
+  const match = duration.match(/^(\d+)([smhd])$/);
+  if (!match) return 7 * 24 * 60 * 60 * 1000; // default 7d
+  const value = parseInt(match[1], 10);
+  switch (match[2]) {
+    case 's': return value * 1000;
+    case 'm': return value * 60 * 1000;
+    case 'h': return value * 60 * 60 * 1000;
+    case 'd': return value * 24 * 60 * 60 * 1000;
+    default: return 7 * 24 * 60 * 60 * 1000;
+  }
+}
 
 export interface JwtTokenPayload {
   user_id: string;
@@ -46,6 +62,64 @@ export function generateToken(payload: AuthPayload): string {
 
 export function verifyToken(token: string): JwtTokenPayload {
   return jwt.verify(token, JWT_SECRET) as JwtTokenPayload;
+}
+
+// ---------------------------------------------------------------------------
+// Refresh Token — generate, store, verify, revoke
+// ---------------------------------------------------------------------------
+
+export async function generateRefreshToken(user_id: string): Promise<string> {
+  const token = crypto.randomBytes(48).toString('hex');
+  const token_hash = crypto.createHash('sha256').update(token).digest('hex');
+  const expires_at = new Date(Date.now() + REFRESH_TOKEN_EXPIRES_IN_MS).toISOString();
+
+  await query(
+    `INSERT INTO refresh_tokens (user_id, token_hash, expires_at) VALUES ($1, $2, $3)`,
+    [user_id, token_hash, expires_at]
+  );
+
+  return token;
+}
+
+export async function verifyRefreshToken(token: string): Promise<{ user_id: string; token_id: string }> {
+  const token_hash = crypto.createHash('sha256').update(token).digest('hex');
+
+  const result = await query<RefreshToken>(
+    `SELECT id, user_id, expires_at, revoked_at FROM refresh_tokens WHERE token_hash = $1`,
+    [token_hash]
+  );
+
+  if (result.rows.length === 0) {
+    throw new Error('Invalid refresh token.');
+  }
+
+  const rt = result.rows[0];
+
+  if (rt.revoked_at) {
+    throw new Error('Refresh token has been revoked.');
+  }
+
+  if (new Date(rt.expires_at) < new Date()) {
+    throw new Error('Refresh token has expired.');
+  }
+
+  return { user_id: rt.user_id, token_id: rt.id };
+}
+
+export async function revokeRefreshToken(token: string): Promise<void> {
+  const token_hash = crypto.createHash('sha256').update(token).digest('hex');
+
+  await query(
+    `UPDATE refresh_tokens SET revoked_at = NOW() WHERE token_hash = $1 AND revoked_at IS NULL`,
+    [token_hash]
+  );
+}
+
+export async function revokeAllUserRefreshTokens(user_id: string): Promise<void> {
+  await query(
+    `UPDATE refresh_tokens SET revoked_at = NOW() WHERE user_id = $1 AND revoked_at IS NULL`,
+    [user_id]
+  );
 }
 
 // ---------------------------------------------------------------------------

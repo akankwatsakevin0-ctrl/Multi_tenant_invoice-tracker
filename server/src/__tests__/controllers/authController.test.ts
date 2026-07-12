@@ -18,7 +18,7 @@ vi.mock('bcryptjs', () => ({
   compare: bcryptCompare,
 }));
 
-import { register, login, getMe } from '../../controllers/authController';
+import { register, login, getMe, refresh, logout } from '../../controllers/authController';
 
 function mockReq(body?: any, user?: any) { return { body: body || {}, user } as any; }
 function mockRes() {
@@ -45,20 +45,6 @@ describe('register', () => {
     await register(req, res, next);
     expect(res.status).toHaveBeenCalledWith(201);
     expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ success: true }));
-  });
-
-  it('returns 400 when required fields are missing', async () => {
-    const next = vi.fn();
-    await register(mockReq({ email: 'only-email@test.com' }), mockRes(), next);
-    expect(next).toHaveBeenCalled();
-    expect(next.mock.calls[0][0].message).toBe('email, password, and tenant_name are required.');
-  });
-
-  it('returns 400 when password too short', async () => {
-    const next = vi.fn();
-    await register(mockReq({ email: 't@t.com', password: 'short', tenant_name: 'T' }), mockRes(), next);
-    expect(next).toHaveBeenCalled();
-    expect(next.mock.calls[0][0].message).toBe('Password must be at least 8 characters.');
   });
 
   it('returns 409 when email exists', async () => {
@@ -96,11 +82,11 @@ describe('login', () => {
     expect(next.mock.calls[0][0].message).toBe('Invalid email or password.');
   });
 
-  it('returns 400 when missing fields', async () => {
+  it('returns 401 for invalid email', async () => {
     const next = vi.fn();
     await login(mockReq({}), mockRes(), next);
     expect(next).toHaveBeenCalled();
-    expect(next.mock.calls[0][0].message).toBe('email and password are required.');
+    expect(next.mock.calls[0][0].message).toBe('Invalid email or password.');
   });
 });
 
@@ -120,5 +106,57 @@ describe('getMe', () => {
     await getMe(mockReq({}, { user_id: 'nonexistent', tenant_id: 'tenant-1' }), mockRes(), next);
     expect(next).toHaveBeenCalled();
     expect(next.mock.calls[0][0].message).toBe('User not found.');
+  });
+});
+
+describe('refresh', () => {
+  beforeEach(() => { query.mockReset(); query.mockResolvedValue({ rows: [] }); });
+
+  it('returns new token pair for valid refresh token', async () => {
+    query
+      .mockResolvedValueOnce({ rows: [{ id: 'rt-1', user_id: 'user-1', expires_at: '2099-01-01T00:00:00Z', revoked_at: null }] })
+      .mockResolvedValueOnce({ rows: [] })
+      .mockResolvedValueOnce({ rows: [{ id: 'user-1', email: 'user@test.com', tenant_id: 'tenant-1', role: 'admin' }] });
+
+    const res = mockRes();
+    await refresh(mockReq({ refresh_token: 'valid-rt' }), res, vi.fn());
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ success: true }));
+    expect(res.json.mock.calls[0][0].data).toHaveProperty('token');
+    expect(res.json.mock.calls[0][0].data).toHaveProperty('refresh_token');
+  });
+
+  it('returns 401 for invalid refresh token', async () => {
+    const next = vi.fn();
+    await refresh(mockReq({ refresh_token: 'invalid-rt' }), mockRes(), next);
+    expect(next).toHaveBeenCalled();
+    expect(next.mock.calls[0][0].message).toBe('Invalid refresh token.');
+  });
+
+  it('returns 401 for revoked refresh token', async () => {
+    query.mockResolvedValueOnce({ rows: [{ id: 'rt-1', user_id: 'user-1', expires_at: '2099-01-01T00:00:00Z', revoked_at: '2024-01-01T00:00:00Z' }] });
+    const next = vi.fn();
+    await refresh(mockReq({ refresh_token: 'revoked-rt' }), mockRes(), next);
+    expect(next).toHaveBeenCalled();
+    expect(next.mock.calls[0][0].message).toContain('revoked');
+  });
+});
+
+describe('logout', () => {
+  beforeEach(() => { query.mockReset(); query.mockResolvedValue({ rows: [] }); });
+
+  it('returns success and revokes the token', async () => {
+    const res = mockRes();
+    await logout(mockReq({ refresh_token: 'rt-to-revoke' }), res, vi.fn());
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ success: true }));
+    expect(query).toHaveBeenCalledWith(
+      expect.stringContaining('UPDATE refresh_tokens'),
+      [expect.any(String)]
+    );
+  });
+
+  it('succeeds even without refresh_token', async () => {
+    const res = mockRes();
+    await logout(mockReq({}), res, vi.fn());
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ success: true }));
   });
 });

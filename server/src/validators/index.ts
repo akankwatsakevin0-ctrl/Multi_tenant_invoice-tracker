@@ -52,6 +52,10 @@ export const invoiceQuerySchema = z.object({
   limit: z.coerce.number().int().min(1).max(100).optional().default(20),
 });
 
+export const refreshTokenSchema = z.object({
+  refresh_token: z.string().min(1, 'refresh_token is required.'),
+});
+
 export type RegisterInput = z.infer<typeof registerSchema>;
 export type LoginInput = z.infer<typeof loginSchema>;
 export type CreateClientInput = z.infer<typeof createClientSchema>;

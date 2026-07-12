@@ -1,6 +1,11 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import jwt from 'jsonwebtoken';
-import { generateToken, verifyToken, authenticate, authorize } from '../../middleware/auth';
+import crypto from 'crypto';
+
+const query = vi.hoisted(() => vi.fn().mockResolvedValue({ rows: [] }));
+vi.mock('../../config/database', () => ({ query, default: {} }));
+
+import { generateToken, verifyToken, authenticate, authorize, generateRefreshToken, verifyRefreshToken, revokeRefreshToken } from '../../middleware/auth';
 
 function mockReq(headers?: Record<string, string>, user?: any) {
   return { headers: headers || {}, user } as any;
@@ -171,5 +176,71 @@ describe('authorize', () => {
 
     expect(res.status).toHaveBeenCalledWith(401);
     expect(next).not.toHaveBeenCalled();
+  });
+});
+
+describe('generateRefreshToken', () => {
+  beforeEach(() => { query.mockReset(); query.mockResolvedValue({ rows: [] }); });
+
+  it('returns a hex string and inserts into DB', async () => {
+    const token = await generateRefreshToken('user-1');
+
+    expect(typeof token).toBe('string');
+    expect(token.length).toBe(96);
+    expect(/^[a-f0-9]+$/.test(token)).toBe(true);
+
+    expect(query).toHaveBeenCalledWith(
+      expect.stringContaining('INSERT INTO refresh_tokens'),
+      [ 'user-1', expect.any(String), expect.any(String) ]
+    );
+  });
+});
+
+describe('verifyRefreshToken', () => {
+  beforeEach(() => { query.mockReset(); query.mockResolvedValue({ rows: [] }); });
+
+  it('returns user_id and token_id for valid token', async () => {
+    const token = 'valid-refresh-token';
+    const hash = crypto.createHash('sha256').update(token).digest('hex');
+    query.mockResolvedValueOnce({
+      rows: [{ id: 'rt-1', user_id: 'user-1', expires_at: '2099-01-01T00:00:00Z', revoked_at: null }],
+    });
+
+    const result = await verifyRefreshToken(token);
+    expect(result).toEqual({ user_id: 'user-1', token_id: 'rt-1' });
+    expect(query).toHaveBeenCalledWith(expect.stringContaining('SELECT'), [hash]);
+  });
+
+  it('throws for invalid token', async () => {
+    await expect(verifyRefreshToken('nonexistent')).rejects.toThrow('Invalid refresh token.');
+  });
+
+  it('throws for revoked token', async () => {
+    query.mockResolvedValueOnce({
+      rows: [{ id: 'rt-1', user_id: 'user-1', expires_at: '2099-01-01T00:00:00Z', revoked_at: '2024-01-01T00:00:00Z' }],
+    });
+    await expect(verifyRefreshToken('revoked-token')).rejects.toThrow('has been revoked');
+  });
+
+  it('throws for expired token', async () => {
+    query.mockResolvedValueOnce({
+      rows: [{ id: 'rt-1', user_id: 'user-1', expires_at: '2020-01-01T00:00:00Z', revoked_at: null }],
+    });
+    await expect(verifyRefreshToken('expired-token')).rejects.toThrow('has expired');
+  });
+});
+
+describe('revokeRefreshToken', () => {
+  beforeEach(() => { query.mockReset(); query.mockResolvedValue({ rows: [] }); });
+
+  it('updates revoked_at for the token', async () => {
+    const token = 'token-to-revoke';
+    const hash = crypto.createHash('sha256').update(token).digest('hex');
+
+    await revokeRefreshToken(token);
+    expect(query).toHaveBeenCalledWith(
+      expect.stringContaining('UPDATE refresh_tokens'),
+      [hash]
+    );
   });
 });
