@@ -117,12 +117,67 @@ npm start
 - `TRUST_PROXY` - `true` when behind a proxy
 - `RATE_LIMIT_MAX` - Maximum requests per window
 
+## Render Deployment
+
+This repository includes a Render configuration file at `render.yaml` for easy deployment.
+
+### Render services
+
+- `invoice-tracker-backend`
+  - Type: Node web service
+  - Root directory: `server`
+  - Build command: `npm install && npm run build`
+  - Start command: `npm start`
+  - Env vars: `DATABASE_URL`, `DB_SSL`, `JWT_SECRET`, `JWT_EXPIRES_IN`, `PORT`, `CORS_ORIGIN`, `TRUST_PROXY`, `RATE_LIMIT_MAX`
+
+- `invoice-tracker-frontend`
+  - Type: Static site
+  - Root directory: `client`
+  - Build command: `npm install && npm run build`
+  - Publish directory: `dist`
+  - Env var: `VITE_API_BASE_URL`
+
+- `invoice-tracker-db`
+  - Type: PostgreSQL database
+  - Database name: `invoice_tracker`
+
+### How to deploy on Render
+
+1. Push this repository to GitHub.
+2. In Render, create a new Web Service from the repo and choose `render.yaml`.
+3. Set `JWT_SECRET` in the backend environment.
+4. If you need SSL, enable it in Render and use `https://` for `CORS_ORIGIN` and `VITE_API_BASE_URL`.
+
 ## Deployment Notes
 
 - Use HTTPS in production.
 - Keep `.env` values secret and out of version control.
 - Configure a reverse proxy or load balancer for `TRUST_PROXY=true`.
 - Use a managed PostgreSQL instance with SSL enabled if applicable.
+
+## Docker deployment
+
+A clean Docker setup is available for local development and production testing.
+
+Build and run the stack:
+
+```bash
+docker compose up --build --detach
+```
+
+Services:
+- `db` — PostgreSQL database
+- `backend` — Express API server
+- `frontend` — React app served by Nginx
+
+Frontend: `http://localhost:5174`
+Backend: `http://localhost:3001`
+
+Stop the stack:
+
+```bash
+docker compose down
+```
 
 ## Recommended Scripts
 

@@ -1,0 +1,47 @@
+services:
+  - type: web
+    name: invoice-tracker-backend
+    env: node
+    region: oregon
+    branch: main
+    rootDir: server
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: "3001"
+      - key: DB_SSL
+        value: "false"
+      - key: JWT_EXPIRES_IN
+        value: 24h
+      - key: CORS_ORIGIN
+        value: https://invoice-tracker-frontend.onrender.com
+      - key: TRUST_PROXY
+        value: "true"
+      - key: RATE_LIMIT_MAX
+        value: "100"
+      - key: DATABASE_URL
+        fromDatabase: invoice-tracker-db
+
+  - type: static
+    name: invoice-tracker-frontend
+    env: static
+    region: oregon
+    branch: main
+    rootDir: client
+    buildCommand: npm install && npm run build
+    staticPublishPath: dist
+    autoDeploy: true
+    envVars:
+      - key: VITE_API_BASE_URL
+        value: https://invoice-tracker-backend.onrender.com/api
+
+databases:
+  - name: invoice-tracker-db
+    engine: postgresql
+    plan: starter
+    region: oregon
+    databaseName: invoice_tracker
