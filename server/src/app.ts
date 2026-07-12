@@ -6,11 +6,14 @@ import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
+import swaggerUi from 'swagger-ui-express';
+import { swaggerSpec } from './config/swagger';
 import { notFound, errorHandler } from './middleware/errorHandler';
 import authRoutes from './routes/auth';
 import invoiceRoutes from './routes/invoices';
 import clientRoutes from './routes/clients';
 import dashboardRoutes from './routes/dashboard';
+import userRoutes from './routes/users';
 import { convertCurrency } from './utils/currency';
 import { CurrencyCode } from './types';
 import { ENV } from './config/env';
@@ -31,7 +34,7 @@ app.use(helmet());
 app.use(
   cors({
     origin: ENV.NODE_ENV === 'production' ? ENV.CORS_ORIGIN : true,
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   })
 );
 app.use(securityHeaders);
@@ -45,6 +48,26 @@ app.use(
 );
 app.use(express.json({ limit: '1mb' }));
 app.use(express.urlencoded({ extended: true }));
+
+// ---------------------------------------------------------------------------
+// Stricter rate limiter for auth routes
+// ---------------------------------------------------------------------------
+
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, error: 'Too many auth attempts. Try again later.' },
+});
+app.use('/api/auth/login', authLimiter);
+app.use('/api/auth/register', authLimiter);
+
+// ---------------------------------------------------------------------------
+// Swagger API docs
+// ---------------------------------------------------------------------------
+
+app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 // ---------------------------------------------------------------------------
 // Health-check
@@ -127,6 +150,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/invoices', invoiceRoutes);
 app.use('/api/clients', clientRoutes);
 app.use('/api/dashboard', dashboardRoutes);
+app.use('/api/users', userRoutes);
 
 // ---------------------------------------------------------------------------
 // Error handling

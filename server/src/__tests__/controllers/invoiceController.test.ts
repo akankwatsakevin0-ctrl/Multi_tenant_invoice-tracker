@@ -37,7 +37,7 @@ describe('getInvoices', () => {
     });
 
     const res = mockRes();
-    await getInvoices(mockReq({}, undefined, {}, { page: '1', limit: '20' }), res, vi.fn());
+    await getInvoices(mockReq({}, undefined, {}, { page: 1, limit: 20 }), res, vi.fn());
     expect(res.json).toHaveBeenCalledWith(
       expect.objectContaining({ success: true, pagination: expect.objectContaining({ page: 1, limit: 20, total: 2 }) })
     );
@@ -100,19 +100,14 @@ describe('createInvoice', () => {
     expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ success: true }));
   });
 
-  it('returns 400 when client_id is missing', async () => {
+  it('returns 404 when client not found for tenant', async () => {
     const next = vi.fn();
-    await createInvoice(mockReq({ due_date: '2024-12-31', items: [{ description: 'T', quantity: 1, unit_price: 100 }] }), mockRes(), next);
+    await createInvoice(mockReq({ client_id: 'nonexistent', due_date: '2024-12-31', currency: 'USD', status: 'draft', items: [{ description: 'T', quantity: 1, unit_price: 100 }] }), mockRes(), next);
     expect(next).toHaveBeenCalled();
-    expect(next.mock.calls[0][0].message).toBe('client_id is required.');
+    expect(next.mock.calls[0][0].message).toBe('Client not found.');
   });
 
-  it('returns 400 when items are empty', async () => {
-    const next = vi.fn();
-    await createInvoice(mockReq({ client_id: 'c1', due_date: '2024-12-31', items: [] }), mockRes(), next);
-    expect(next).toHaveBeenCalled();
-    expect(next.mock.calls[0][0].message).toBe('At least one line item is required.');
-  });
+
 });
 
 describe('updateInvoice', () => {

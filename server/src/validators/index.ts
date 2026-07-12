@@ -56,6 +56,16 @@ export const refreshTokenSchema = z.object({
   refresh_token: z.string().min(1, 'refresh_token is required.'),
 });
 
+export const updateClientSchema = z.object({
+  name: z.string().min(1).trim().optional(),
+  email: z.string().email().optional().nullable(),
+  address: z.string().optional().nullable(),
+});
+
+export const updateUserSchema = z.object({
+  role: z.enum(['admin', 'manager', 'user']),
+});
+
 export type RegisterInput = z.infer<typeof registerSchema>;
 export type LoginInput = z.infer<typeof loginSchema>;
 export type CreateClientInput = z.infer<typeof createClientSchema>;

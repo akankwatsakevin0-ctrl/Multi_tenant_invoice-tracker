@@ -1,7 +1,3 @@
-// =============================================================================
-// Auth Store — Zustand
-// =============================================================================
-
 import { create } from 'zustand';
 import type { User } from '../types';
 import { authApi } from '../services/api';
@@ -15,11 +11,11 @@ interface AuthState {
   initialize: () => Promise<void>;
   login: (email: string, password: string) => Promise<void>;
   register: (email: string, password: string, tenant_name: string, tenant_currency?: string) => Promise<void>;
-  logout: () => void;
+  logout: () => Promise<void>;
   setUser: (user: User) => void;
 }
 
-export const useAuthStore = create<AuthState>((set) => ({
+export const useAuthStore = create<AuthState>((set, get) => ({
   user: null,
   token: null,
   isLoading: false,
@@ -31,17 +27,11 @@ export const useAuthStore = create<AuthState>((set) => ({
 
     if (token && storedUser) {
       try {
-        // Verify token is still valid by fetching profile
         const res = await authApi.me();
-        set({
-          user: res.data as User,
-          token,
-          isInitialized: true,
-          isLoading: false,
-        });
+        set({ user: res.data as User, token, isInitialized: true, isLoading: false });
       } catch {
-        // Token expired or invalid — clear storage
         localStorage.removeItem('auth_token');
+        localStorage.removeItem('refresh_token');
         localStorage.removeItem('auth_user');
         set({ user: null, token: null, isInitialized: true, isLoading: false });
       }
@@ -56,8 +46,9 @@ export const useAuthStore = create<AuthState>((set) => ({
       const res = await authApi.login({ email, password });
       if (!res.data) throw new Error('Login failed');
 
-      const { token, user } = res.data;
+      const { token, refresh_token, user } = res.data;
       localStorage.setItem('auth_token', token);
+      localStorage.setItem('refresh_token', refresh_token);
       localStorage.setItem('auth_user', JSON.stringify(user));
 
       set({ user, token, isLoading: false });
@@ -73,8 +64,9 @@ export const useAuthStore = create<AuthState>((set) => ({
       const res = await authApi.register({ email, password, tenant_name, tenant_currency });
       if (!res.data) throw new Error('Registration failed');
 
-      const { token, user } = res.data;
+      const { token, refresh_token, user } = res.data;
       localStorage.setItem('auth_token', token);
+      localStorage.setItem('refresh_token', refresh_token);
       localStorage.setItem('auth_user', JSON.stringify(user));
 
       set({ user, token, isLoading: false });
@@ -84,8 +76,20 @@ export const useAuthStore = create<AuthState>((set) => ({
     }
   },
 
-  logout: () => {
+  logout: async () => {
+    const refreshToken = localStorage.getItem('refresh_token');
+    const { user } = get();
+
+    if (refreshToken && user) {
+      try {
+        await authApi.logout(refreshToken);
+      } catch {
+        // server error on logout is non-critical
+      }
+    }
+
     localStorage.removeItem('auth_token');
+    localStorage.removeItem('refresh_token');
     localStorage.removeItem('auth_user');
     set({ user: null, token: null });
   },
