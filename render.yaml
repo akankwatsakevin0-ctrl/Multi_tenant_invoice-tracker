@@ -15,8 +15,8 @@ services:
     env: node
     plan: free
     region: oregon
-    buildCommand: npm --prefix server install --include=dev && npm --prefix client install --include=dev && npm --prefix server run build && npm --prefix client run build
-    startCommand: npm --prefix server start
+    buildCommand: bash build.sh
+    startCommand: cd server && node dist/index.js
     healthCheckPath: /api/health
     envVars:
       - key: NODE_ENV
@@ -31,6 +31,8 @@ services:
         generateValue: true
       - key: JWT_EXPIRES_IN
         value: 24h
+      - key: CORS_ORIGIN
+        value: "*"
       - key: CORS_ORIGIN
         value: "*"
       - key: TRUST_PROXY
