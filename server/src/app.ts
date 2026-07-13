@@ -3,6 +3,7 @@
 // =============================================================================
 
 import express from 'express';
+import path from 'path';
 import cors from 'cors';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
@@ -151,6 +152,18 @@ app.use('/api/invoices', invoiceRoutes);
 app.use('/api/clients', clientRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/users', userRoutes);
+
+// ---------------------------------------------------------------------------
+// Serve built frontend in production
+// ---------------------------------------------------------------------------
+
+if (ENV.NODE_ENV === 'production') {
+  const clientDist = path.join(__dirname, '../../client/dist');
+  app.use(express.static(clientDist));
+  app.get('*', (_req, res) => {
+    res.sendFile(path.join(clientDist, 'index.html'));
+  });
+}
 
 // ---------------------------------------------------------------------------
 // Error handling

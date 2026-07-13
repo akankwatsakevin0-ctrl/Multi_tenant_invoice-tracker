@@ -1,32 +1,16 @@
 {
-  "name": "multi_tenant-invoice-tracker",
+  "name": "multi-tenant-invoice-tracker",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "private": true,
   "scripts": {
+    "install:all": "cd server && npm install && cd ../client && npm install",
+    "build:server": "cd server && npm run build",
+    "build:client": "cd client && npm run build",
+    "build": "npm run build:server && npm run build:client",
+    "start": "cd server && node dist/index.js",
     "test": "cd server && npm test"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "type": "commonjs",
-  "dependencies": {
-    "bcrypt": "^6.0.0",
-    "cors": "^2.8.6",
-    "dotenv": "^17.4.2",
-    "express": "^5.2.1",
-    "jsonwebtoken": "^9.0.3",
-    "pg": "^8.22.0"
-  },
-  "devDependencies": {
-    "@types/bcrypt": "^6.0.0",
-    "@types/cors": "^2.8.19",
-    "@types/express": "^5.0.6",
-    "@types/jsonwebtoken": "^9.0.10",
-    "@types/node": "^26.1.1",
-    "@types/pg": "^8.20.0",
-    "nodemon": "^3.1.14",
-    "ts-node": "^10.9.2",
-    "typescript": "^7.0.2"
+  "engines": {
+    "node": ">=18.0.0"
   }
 }
