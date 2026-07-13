@@ -7,7 +7,7 @@ databases:
   - name: invoice-tracker-db
     databaseName: invoice_tracker
     plan: free
-    ipAllowList: [] # allow only from Render services
+    ipAllowList: []
 
 services:
   - type: web
@@ -15,8 +15,8 @@ services:
     env: node
     plan: free
     region: oregon
-    buildCommand: npm run install:all && npm run build
-    startCommand: npm start
+    buildCommand: npm --prefix server install --include=dev && npm --prefix client install --include=dev && npm --prefix server run build && npm --prefix client run build
+    startCommand: npm --prefix server start
     healthCheckPath: /api/health
     envVars:
       - key: NODE_ENV
@@ -32,7 +32,7 @@ services:
       - key: JWT_EXPIRES_IN
         value: 24h
       - key: CORS_ORIGIN
-        value: https://invoice-tracker-api.onrender.com
+        value: "*"
       - key: TRUST_PROXY
         value: "true"
       - key: RATE_LIMIT_MAX
