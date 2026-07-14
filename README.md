@@ -1,28 +1,16 @@
 # Multi-Tenant Invoice Tracker
 
-A production-grade, multi-tenant invoice management platform built with **React 18**, **Express**, **PostgreSQL**, and **TypeScript**. Features JWT auth with refresh token rotation, Zod request validation, role-based access control, and automated CI/CD.
+[![Live Demo](https://img.shields.io/badge/Live-Demo-38BDF8?style=for-the-badge&logo=render)](YOUR_DEPLOYED_URL_HERE)
+[![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?logo=typescript&logoColor=fff)](https://www.typescriptlang.org/)
+[![React](https://img.shields.io/badge/React-61DAFB?logo=react&logoColor=000)](https://reactjs.org/)
+[![Express](https://img.shields.io/badge/Express-000?logo=express&logoColor=fff)](https://expressjs.com/)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-4169E1?logo=postgresql&logoColor=fff)](https://www.postgresql.org/)
+[![License](https://img.shields.io/badge/License-MIT-yellow)](LICENSE)
 
----
+A production-grade, multi-tenant invoice management platform with JWT auth, role-based access control, and PostgreSQL data isolation. Each tenant gets their own isolated data space with full CRUD for invoices, clients, and users.
 
-## Architecture
-
-```
-┌─────────────────────────────────────────────────────┐
-│                   Render (single service)           │
-│                                                      │
-│  ┌─────────────────────┐    ┌─────────────────────┐ │
-│  │   React + Vite      │    │   Express API       │ │
-│  │   Tailwind CSS      │◄──►│   TypeScript        │ │
-│  │   Zustand           │    │   Zod Validation    │ │
-│  │   React Router      │    │   JWT Auth          │ │
-│  └─────────────────────┘    └──────────┬──────────┘ │
-│                                        │             │
-│                               ┌────────▼──────────┐ │
-│                               │   PostgreSQL       │ │
-│                               │   (Render Managed) │ │
-│                               └───────────────────┘ │
-└─────────────────────────────────────────────────────┘
-```
+**Live:** [YOUR_DEPLOYED_URL_HERE](YOUR_DEPLOYED_URL_HERE)  
+**API docs:** [YOUR_DEPLOYED_URL_HERE/api/docs](YOUR_DEPLOYED_URL_HERE/api/docs)
 
 ---
 
@@ -30,32 +18,28 @@ A production-grade, multi-tenant invoice management platform built with **React 
 
 ### Authentication & Authorization
 - Email/password registration with bcrypt hashing
-- JWT access tokens (configurable expiry, default 24h)
-- Refresh token rotation (SHA-256 hashed, stored in DB)
+- JWT access tokens with refresh token rotation (SHA-256 hashed, stored in DB)
 - Role-based access control (`admin`, `manager`, `user`)
-- Rate limiting on auth endpoints (20 req / 15 min)
+- Rate limiting on auth endpoints
 
 ### API
 - Full CRUD for invoices, clients, and users
 - Multi-tenant data isolation (every query scoped to tenant)
 - Pagination, filtering, and search on invoice list
-- Soft-delete on all entities (data recovery safe)
-- Zod schema validation on every request body/query
+- Soft-delete on all entities
+- Zod schema validation on every request
 - OpenAPI 3.0 documentation at `/api/docs`
 
 ### Frontend
-- Responsive Tailwind CSS UI
-- Lazy-loaded route splitting
-- Zustand state management
-- Axios interceptors with automatic token refresh
+- Responsive Tailwind CSS UI with lazy-loaded routes
+- Zustand state management with Axios interceptors and automatic token refresh
 - Dashboard with revenue charts and status breakdowns
 - GDPR data export and account deletion
 
 ### Security & DevOps
 - Helmet security headers, CORS, rate limiting
-- CI pipeline: typecheck → ESLint → Prettier → 100 tests
-- Graceful shutdown (SIGTERM/SIGINT)
-- SSL/TLS enforced in production
+- CI pipeline: typecheck, ESLint, Prettier, 100+ tests
+- SSL enforced in production
 
 ---
 
@@ -67,7 +51,7 @@ A production-grade, multi-tenant invoice management platform built with **React 
 | **Backend** | Express 4, TypeScript, PostgreSQL, Zod, bcrypt, jsonwebtoken |
 | **Database** | PostgreSQL 15+ with UUID primary keys, soft-delete pattern |
 | **Testing** | Vitest, Supertest (integration tests) |
-| **CI/CD** | GitHub Actions (lint → format → test) |
+| **CI/CD** | GitHub Actions |
 | **Deployment** | Render (Blueprint IaC) |
 
 ---
@@ -103,15 +87,12 @@ A production-grade, multi-tenant invoice management platform built with **React 
 
 ---
 
-## Quick Start (Local Development)
+## Quick Start
 
 ### Prerequisites
+- Node.js 18+, PostgreSQL 15+, npm 9+
 
-- Node.js 18+
-- PostgreSQL 15+
-- npm 9+
-
-### 1. Clone and install dependencies
+### Install and run
 
 ```bash
 git clone https://github.com/akankwatsakevin0-ctrl/Multi_tenant_invoice-tracker.git
@@ -119,33 +100,15 @@ cd Multi_tenant_invoice-tracker
 
 cd client && npm install && cd ..
 cd server && npm install && cd ..
-```
 
-### 2. Configure environment
-
-```bash
 cp server/.env.example server/.env
-```
+# Edit server/.env with your database credentials
+# DATABASE_URL=postgresql://user:password@localhost:5432/invoice_tracker
+# JWT_SECRET=generate-a-strong-random-secret
 
-Edit `server/.env` with your database credentials:
-
-```env
-DATABASE_URL=postgresql://user:password@localhost:5432/invoice_tracker
-JWT_SECRET=generate-a-strong-random-secret
-```
-
-### 3. Create database and run migrations
-
-```bash
 createdb invoice_tracker
-cd server
-npm run migrate
-npm run seed
-```
+cd server && npm run migrate && npm run seed
 
-### 4. Start development servers
-
-```bash
 # Terminal 1: Backend (http://localhost:3001)
 cd server && npm run dev
 
@@ -181,75 +144,13 @@ cd client && npm run dev
 | GET | `/api/convert` | — | Currency conversion |
 | GET | `/api/docs` | — | Swagger UI |
 
-Interactive API docs available at `/api/docs` when the server is running.
-
----
-
-## Deployment
-
-Deploy to Render in one click using the Blueprint (Infrastructure as Code):
-
-1. Push to GitHub
-2. Go to [dashboard.render.com](https://dashboard.render.com) → **New+** → **Blueprint**
-3. Connect your repository
-4. Render provisions PostgreSQL + Web Service automatically
-
-Environment variables are pre-configured in `render.yaml`. After deployment, run migrations:
-
-```bash
-# In Render Web Service → Shell
-cd server && node db/migrate.js up
-```
-
-Your app will be live at `https://invoice-tracker-api.onrender.com`.
-
 ---
 
 ## Testing
 
 ```bash
-# Run all tests (100+ unit + integration)
 cd server && npm test
-
-# Watch mode
-cd server && npm run test:watch
-
-# Coverage report
-cd server && npm run test:coverage
 ```
-
----
-
-## Scripts Reference
-
-### Root
-
-| Script | Description |
-|--------|-------------|
-| `npm run build` | Build server + client |
-| `npm start` | Start production server |
-| `npm test` | Run server tests |
-
-### Server (`cd server`)
-
-| Script | Description |
-|--------|-------------|
-| `npm run dev` | Start dev server with hot reload |
-| `npm run build` | Compile TypeScript to `dist/` |
-| `npm start` | Start compiled production server |
-| `npm run migrate` | Apply pending DB migrations |
-| `npm run seed` | Seed sample data |
-| `npm run lint` | TypeScript type-check |
-| `npm run lint:eslint` | ESLint analysis |
-| `npm run format` | Prettier auto-format |
-
-### Client (`cd client`)
-
-| Script | Description |
-|--------|-------------|
-| `npm run dev` | Vite dev server (HMR) |
-| `npm run build` | Production build to `dist/` |
-| `npm run preview` | Preview production build |
 
 ---
 
@@ -260,15 +161,9 @@ cd server && npm run test:coverage
 | Variable | Required | Default | Description |
 |----------|----------|---------|-------------|
 | `DATABASE_URL` | ✓ | — | PostgreSQL connection string |
-| `DB_SSL` | — | `false` | Enable SSL for DB connection |
 | `JWT_SECRET` | ✓ | — | HMAC secret for JWT signing |
-| `JWT_EXPIRES_IN` | — | `24h` | Access token TTL |
-| `REFRESH_TOKEN_EXPIRES_IN` | — | `7d` | Refresh token TTL |
 | `PORT` | — | `3001` | Server listen port |
-| `HOST` | — | `0.0.0.0` | Server bind address |
 | `CORS_ORIGIN` | prod | — | Allowed origins (comma-separated) |
-| `TRUST_PROXY` | — | `false` | Trust proxy headers |
-| `RATE_LIMIT_MAX` | — | `100` | Global rate limit / 15 min |
 
 ### Client (`client/.env`)
 
