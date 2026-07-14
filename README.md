@@ -1,6 +1,6 @@
 # Multi-Tenant Invoice Tracker
 
-[![Live Demo](https://img.shields.io/badge/Live-Demo-38BDF8?style=for-the-badge&logo=render)](YOUR_DEPLOYED_URL_HERE)
+[![Live Demo](https://img.shields.io/badge/Live-Demo-38BDF8?style=for-the-badge&logo=render)](https://invoice-tracker-api-kjsk.onrender.com)
 [![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?logo=typescript&logoColor=fff)](https://www.typescriptlang.org/)
 [![React](https://img.shields.io/badge/React-61DAFB?logo=react&logoColor=000)](https://reactjs.org/)
 [![Express](https://img.shields.io/badge/Express-000?logo=express&logoColor=fff)](https://expressjs.com/)
@@ -9,8 +9,8 @@
 
 A production-grade, multi-tenant invoice management platform with JWT auth, role-based access control, and PostgreSQL data isolation. Each tenant gets their own isolated data space with full CRUD for invoices, clients, and users.
 
-**Live:** [YOUR_DEPLOYED_URL_HERE](YOUR_DEPLOYED_URL_HERE)  
-**API docs:** [YOUR_DEPLOYED_URL_HERE/api/docs](YOUR_DEPLOYED_URL_HERE/api/docs)
+**Live:** [https://invoice-tracker-api-kjsk.onrender.com](https://invoice-tracker-api-kjsk.onrender.com)  
+**API docs:** [https://invoice-tracker-api-kjsk.onrender.com/api/docs](https://invoice-tracker-api-kjsk.onrender.com/api/docs)
 
 ---
 
