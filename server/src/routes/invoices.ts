@@ -11,6 +11,8 @@ import {
   deleteInvoice,
 } from '../controllers/invoiceController';
 import { authenticate } from '../middleware/auth';
+import { validate } from '../middleware/validate';
+import { createInvoiceSchema, updateInvoiceSchema, invoiceQuerySchema } from '../validators';
 
 const router = Router();
 
@@ -18,16 +20,16 @@ const router = Router();
 router.use(authenticate);
 
 // GET    /api/invoices      — List invoices (with optional ?status= & ?currency= filters)
-router.get('/', getInvoices);
+router.get('/', validate(invoiceQuerySchema, 'query'), getInvoices);
 
 // GET    /api/invoices/:id  — Get single invoice with line items
 router.get('/:id', getInvoice);
 
 // POST   /api/invoices      — Create invoice with line items
-router.post('/', createInvoice);
+router.post('/', validate(createInvoiceSchema), createInvoice);
 
 // PUT    /api/invoices/:id  — Update invoice (and optionally replace items)
-router.put('/:id', updateInvoice);
+router.put('/:id', validate(updateInvoiceSchema), updateInvoice);
 
 // DELETE /api/invoices/:id  — Soft-delete invoice
 router.delete('/:id', deleteInvoice);

@@ -15,6 +15,12 @@
         "seed": "node db/seed.js",
         "db:setup": "npm run migrate && npm run seed",
         "lint": "tsc --noEmit",
+        "lint:eslint": "eslint src/",
+        "format": "prettier --write \"src/**/*.ts\"",
+        "format:check": "prettier --check \"src/**/*.ts\"",
+        "test": "vitest run",
+        "test:watch": "vitest",
+        "test:coverage": "vitest run --coverage",
         "clean": "rm -rf dist"
     },
     "dependencies": {
@@ -25,17 +31,31 @@
         "express-rate-limit": "^7.1.0",
         "helmet": "^7.1.0",
         "jsonwebtoken": "^9.0.2",
-        "pg": "^8.12.0"
+        "pg": "^8.12.0",
+        "swagger-jsdoc": "^6.3.0",
+        "swagger-ui-express": "^5.0.1",
+        "zod": "^4.4.3"
     },
     "devDependencies": {
+        "@eslint/js": "^10.0.1",
         "@types/bcryptjs": "^2.4.6",
         "@types/cors": "^2.8.17",
         "@types/express": "^4.17.21",
         "@types/jsonwebtoken": "^9.0.6",
         "@types/node": "^20.14.0",
         "@types/pg": "^8.11.6",
+        "@types/supertest": "^7.2.0",
+        "@types/swagger-jsdoc": "^6.0.4",
+        "@types/swagger-ui-express": "^4.1.8",
+        "eslint": "^10.7.0",
+        "eslint-config-prettier": "^10.1.8",
         "nodemon": "^3.1.0",
+        "openapi-types": "^12.1.3",
+        "prettier": "^3.9.5",
+        "supertest": "^7.2.2",
         "ts-node": "^10.9.2",
-        "typescript": "^5.5.0"
+        "typescript": "^5.5.0",
+        "typescript-eslint": "^8.63.0",
+        "vitest": "^4.1.10"
     }
 }

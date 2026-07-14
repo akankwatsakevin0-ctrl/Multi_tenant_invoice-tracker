@@ -1,49 +1,43 @@
-services:
-  - type: web
-    name: invoice-tracker-backend
-    env: node
-    region: oregon
-    branch: master
-    rootDir: server
-    buildCommand: npm install && npm run build
-    startCommand: npm start
-    autoDeploy: true
-    envVars:
-      - key: NODE_ENV
-        value: production
-      - key: PORT
-        value: "3001"
-      - key: DB_SSL
-        value: "true"
-      - key: JWT_EXPIRES_IN
-        value: 24h
-      - key: CORS_ORIGIN
-        value: https://invoice-tracker-frontend.onrender.com
-      - key: TRUST_PROXY
-        value: "true"
-      - key: RATE_LIMIT_MAX
-        value: "100"
-      - key: JWT_SECRET
-        generateValue: true
-      - key: DATABASE_URL
-        fromDatabase: invoice-tracker-db
-
-  - type: static
-    name: invoice-tracker-frontend
-    env: static
-    region: oregon
-    branch: master
-    rootDir: client
-    buildCommand: npm install && npm run build
-    staticPublishPath: dist
-    autoDeploy: true
-    envVars:
-      - key: VITE_API_BASE_URL
-        value: https://invoice-tracker-backend.onrender.com/api
+# =============================================================================
+# Render Blueprint — Infrastructure as Code
+# Deploy: https://render.com/docs/blueprint-spec
+# =============================================================================
 
 databases:
   - name: invoice-tracker-db
-    engine: postgresql
-    plan: starter
-    region: oregon
     databaseName: invoice_tracker
+    plan: free
+    ipAllowList: []
+
+services:
+  - type: web
+    name: invoice-tracker-api
+    env: node
+    plan: free
+    region: oregon
+    buildCommand: bash build.sh
+    startCommand: cd server && node dist/index.js
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        fromDatabase:
+          name: invoice-tracker-db
+          property: connectionString
+      - key: DB_SSL
+        value: "true"
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_EXPIRES_IN
+        value: 24h
+      - key: CORS_ORIGIN
+        value: "*"
+      - key: CORS_ORIGIN
+        value: "*"
+      - key: TRUST_PROXY
+        value: "true"
+      - key: RATE_LIMIT_MAX
+        value: "200"
+      - key: PORT
+        value: "10000"

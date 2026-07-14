@@ -24,6 +24,7 @@ export const ENV = {
   DB_POOL_MAX: parseInt(process.env.DB_POOL_MAX || '10', 10),
   JWT_SECRET: process.env.JWT_SECRET!,
   JWT_EXPIRES_IN: process.env.JWT_EXPIRES_IN || '24h',
+  REFRESH_TOKEN_EXPIRES_IN: process.env.REFRESH_TOKEN_EXPIRES_IN || '7d',
   NODE_ENV: process.env.NODE_ENV || 'development',
   PORT: parseInt(process.env.PORT || '3001', 10),
   HOST: process.env.HOST || '0.0.0.0',

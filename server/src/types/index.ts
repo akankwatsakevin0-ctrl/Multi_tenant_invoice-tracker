@@ -56,6 +56,15 @@ export interface Invoice {
   deleted_at: string | null;
 }
 
+export interface RefreshToken {
+  id: string;
+  user_id: string;
+  token_hash: string;
+  expires_at: string;
+  created_at: string;
+  revoked_at: string | null;
+}
+
 export interface InvoiceItem {
   id: string;
   invoice_id: string;
