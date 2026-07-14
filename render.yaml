@@ -33,8 +33,6 @@ services:
         value: 24h
       - key: CORS_ORIGIN
         value: "*"
-      - key: CORS_ORIGIN
-        value: "*"
       - key: TRUST_PROXY
         value: "true"
       - key: RATE_LIMIT_MAX
