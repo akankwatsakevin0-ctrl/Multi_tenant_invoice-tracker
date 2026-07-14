@@ -3,7 +3,7 @@ services:
     name: invoice-tracker-backend
     env: node
     region: oregon
-    branch: main
+    branch: master
     rootDir: server
     buildCommand: npm install && npm run build
     startCommand: npm start
@@ -14,7 +14,7 @@ services:
       - key: PORT
         value: "3001"
       - key: DB_SSL
-        value: "false"
+        value: "true"
       - key: JWT_EXPIRES_IN
         value: 24h
       - key: CORS_ORIGIN
@@ -23,6 +23,8 @@ services:
         value: "true"
       - key: RATE_LIMIT_MAX
         value: "100"
+      - key: JWT_SECRET
+        generateValue: true
       - key: DATABASE_URL
         fromDatabase: invoice-tracker-db
 
@@ -30,7 +32,7 @@ services:
     name: invoice-tracker-frontend
     env: static
     region: oregon
-    branch: main
+    branch: master
     rootDir: client
     buildCommand: npm install && npm run build
     staticPublishPath: dist
